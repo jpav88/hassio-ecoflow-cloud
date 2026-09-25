@@ -353,6 +353,14 @@ class DeltaPro3(BaseInternalDevice):
         try:
             _LOGGER.debug(f"Processing {len(raw_data)} bytes of raw data")
 
+            # 0. JSON frames share the topics: the get topic carries latestQuotas
+            # requests as plain JSON (our own, echoed back by the broker, or another
+            # client's on the same account). No protobuf frame can start with '{'
+            # (0x7b = field 15, wire type 3: a proto2 group, which no header uses), so
+            # route these straight to JSON instead of logging a header-parse ERROR.
+            if raw_data[:1] == b"{":
+                return super()._prepare_data(raw_data)
+
             # 1. Decode HeaderMessage
             header_info = self._decode_header_message(raw_data)
             if not header_info:
@@ -362,7 +370,14 @@ class DeltaPro3(BaseInternalDevice):
             # 2. Extract payload data
             pdata = self._extract_payload_data(header_info.get("header_obj"))
             if not pdata:
-                _LOGGER.warning("No payload data found")
+                # Routine: devices answer latestQuotas requests with a header-only
+                # frame (observed: 254/21, ~0.3s after each request).
+                _LOGGER.debug(
+                    "Header without payload (cmdFunc=%s, cmdId=%s, %d bytes)",
+                    header_info.get("cmdFunc"),
+                    header_info.get("cmdId"),
+                    len(raw_data),
+                )
                 return {}
 
             # 3. XOR decode (if needed)
@@ -466,8 +481,7 @@ class DeltaPro3(BaseInternalDevice):
                 _LOGGER.debug(f"Extracted {len(pdata)} bytes of payload data")
                 return pdata
             else:
-                _LOGGER.warning("No pdata found in header")
-                return None
+                return None  # header-only frame; the caller logs it with context
         except Exception as e:
             _LOGGER.error(f"Payload extraction error: {e}")
             return None
