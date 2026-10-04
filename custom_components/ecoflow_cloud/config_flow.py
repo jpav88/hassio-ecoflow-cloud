@@ -33,11 +33,13 @@ from custom_components.ecoflow_cloud import (
     CONF_USERNAME,
     CONFIG_VERSION,
     DEFAULT_ASSUME_OFFLINE_SEC,
+    DEFAULT_ENERGY_UPDATE_INTERVAL_SEC,
     DEFAULT_REFRESH_PERIOD_SEC,
     DEFAULT_RESET_SENSORS_ON_OFFLINE,
     ECOFLOW_DOMAIN,
     OPTS_ASSUME_OFFLINE_SEC,
     OPTS_DIAGNOSTIC_MODE,
+    OPTS_ENERGY_UPDATE_INTERVAL_SEC,
     OPTS_POWER_STEP,
     OPTS_REFRESH_PERIOD_SEC,
     OPTS_RESET_SENSORS_ON_OFFLINE,
@@ -389,6 +391,7 @@ class EcoflowConfigFlow(ConfigFlow, domain=ECOFLOW_DOMAIN):
             OPTS_VERBOSE_STATUS_MODE: False,
             OPTS_ASSUME_OFFLINE_SEC: DEFAULT_ASSUME_OFFLINE_SEC,
             OPTS_RESET_SENSORS_ON_OFFLINE: DEFAULT_RESET_SENSORS_ON_OFFLINE,
+            OPTS_ENERGY_UPDATE_INTERVAL_SEC: DEFAULT_ENERGY_UPDATE_INTERVAL_SEC,
         }
 
         return await self.update_or_create()
@@ -511,6 +514,7 @@ class EcoflowConfigFlow(ConfigFlow, domain=ECOFLOW_DOMAIN):
             OPTS_VERBOSE_STATUS_MODE: False,
             OPTS_ASSUME_OFFLINE_SEC: DEFAULT_ASSUME_OFFLINE_SEC,
             OPTS_RESET_SENSORS_ON_OFFLINE: DEFAULT_RESET_SENSORS_ON_OFFLINE,
+            OPTS_ENERGY_UPDATE_INTERVAL_SEC: DEFAULT_ENERGY_UPDATE_INTERVAL_SEC,
         }
 
         return await self.update_or_create()
@@ -569,6 +573,10 @@ class EcoflowOptionsFlow(OptionsFlow):
                             OPTS_RESET_SENSORS_ON_OFFLINE,
                             default=device_options.reset_sensors_on_offline,
                         ): bool,
+                        vol.Required(
+                            OPTS_ENERGY_UPDATE_INTERVAL_SEC,
+                            default=device_options.energy_update_interval,
+                        ): vol.All(int, vol.Range(min=0)),
                     }
                 ),
             )
@@ -581,6 +589,7 @@ class EcoflowOptionsFlow(OptionsFlow):
             OPTS_VERBOSE_STATUS_MODE: user_input[OPTS_VERBOSE_STATUS_MODE],
             OPTS_ASSUME_OFFLINE_SEC: user_input[OPTS_ASSUME_OFFLINE_SEC],
             OPTS_RESET_SENSORS_ON_OFFLINE: user_input[OPTS_RESET_SENSORS_ON_OFFLINE],
+            OPTS_ENERGY_UPDATE_INTERVAL_SEC: user_input[OPTS_ENERGY_UPDATE_INTERVAL_SEC],
         }
 
         return self.async_create_entry(title="", data=new_options)
