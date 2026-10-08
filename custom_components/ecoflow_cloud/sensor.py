@@ -860,7 +860,7 @@ class IntegralEnergySensorEntity(IntegrationSensor):
         super().__init__(
             **version_kwargs,
             integration_method="left",
-            name=f"{base._device.device_info.name} {base.title().replace(f'{const.POWER}', f' {const.ENERGY}')}",
+            name=self._energy_name(base),
             round_digits=4,
             source_entity=base.entity_id,
             unique_id=f"{base._attr_unique_id}_energy",
@@ -869,6 +869,7 @@ class IntegralEnergySensorEntity(IntegrationSensor):
             max_sub_interval=timedelta(seconds=60),
         )
         self.device_info = base.device_info
+        self._base = base
         self._attr_entity_registry_enabled_default = enabled_default and base.enabled_default
         # Optional per-device throttle (seconds; 0 = off). The integral still advances on every source
         # update; only the reported total is held back, so the recorder stores at most one row per
@@ -877,6 +878,18 @@ class IntegralEnergySensorEntity(IntegrationSensor):
         self._report_interval = base._device.device_data.options.energy_update_interval
         self._reported_value: Decimal | None = None
         self._reported_at = 0.0
+
+    @staticmethod
+    def _energy_name(base: WattsSensorEntity) -> str:
+        # "X Power" -> "X Energy". Replacing the bare word keeps the original spacing.
+        return f"{base._device.device_info.name} {base.title().replace(const.POWER, const.ENERGY)}"
+
+    @property
+    @override
+    def name(self) -> str:
+        # Derived from the source on every state write, so a source whose title can change at
+        # runtime (e.g. an app-side circuit rename) renames its energy sensor too.
+        return self._energy_name(self._base)
 
     def _integral_value(self) -> Decimal | None:
         return super().native_value
